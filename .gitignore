@@ -1,0 +1,21 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.db
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Env files
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+install_log.txt
