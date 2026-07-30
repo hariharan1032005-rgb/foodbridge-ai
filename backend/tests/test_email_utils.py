@@ -17,4 +17,4 @@ def test_send_welcome_email_sends_message(monkeypatch):
         send_welcome_email("user@example.com", "Jane Doe")
 
     assert smtp_cls.called
-    mock_smtp.sendmail.assert_called_once()
+    mock_smtp.__enter__.return_value.sendmail.assert_called_once()

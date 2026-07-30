@@ -10,7 +10,6 @@ from app.agents.shelf_life_agent import ShelfLifePredictionAgent
 from app.agents.matching_agent import SmartMatchingAgent
 from app.agents.demand_prediction_agent import DemandPredictionAgent
 from app.agents.route_optimization_agent import RouteOptimizationAgent
-from app.agents.notification_agent import NotificationAgent
 from app.agents.recommendation_agent import RecommendationAgent
 from app.agents.analytics_agent import AnalyticsAgent
 
@@ -24,6 +23,7 @@ class AgentState(TypedDict):
     shelf_life: Optional[dict]
     matches: Optional[list]
     route: Optional[dict]
+    volunteer_assignment: Optional[dict]
     recommendation: Optional[dict]
     notifications_sent: Optional[list]
     error: Optional[str]
@@ -84,8 +84,18 @@ async def optimize_route_node(state: AgentState) -> AgentState:
     return {**state, "route": route}
 
 
+async def assign_volunteer_node(state: AgentState) -> AgentState:
+    """Node 5: Volunteer Assignment"""
+    agent = RouteOptimizationAgent()
+    donation = state["donation"]
+    pickup_lat = donation.get("pickup_latitude", 0) or 17.3850
+    pickup_lon = donation.get("pickup_longitude", 0) or 78.4867
+    volunteer = await agent.assign_volunteer(state.get("volunteers", []), pickup_lat, pickup_lon)
+    return {**state, "volunteer_assignment": volunteer}
+
+
 async def generate_recommendation_node(state: AgentState) -> AgentState:
-    """Node 5: Recommendation Generation"""
+    """Node 6: Recommendation Generation"""
     agent = RecommendationAgent()
     matches = state.get("matches", [])
     donation = state["donation"]
@@ -111,6 +121,7 @@ class FoodBridgeWorkflow:
             ("Shelf Life Prediction", predict_shelf_life_node),
             ("NGO Matching", match_ngos_node),
             ("Route Optimization", optimize_route_node),
+            ("Volunteer Assignment", assign_volunteer_node),
             ("Recommendation", generate_recommendation_node),
         ]
 
@@ -124,6 +135,7 @@ class FoodBridgeWorkflow:
             "shelf_life": None,
             "matches": None,
             "route": None,
+            "volunteer_assignment": None,
             "recommendation": None,
             "notifications_sent": [],
             "error": None,

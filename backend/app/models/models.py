@@ -19,6 +19,7 @@ class DonationStatus(str, enum.Enum):
     PENDING = "pending"
     MATCHED = "matched"
     ASSIGNED = "assigned"
+    ACCEPTED = "accepted"
     PICKED_UP = "picked_up"
     DELIVERED = "delivered"
     EXPIRED = "expired"
@@ -201,6 +202,7 @@ class Match(Base):
     donor_notified = Column(Boolean, default=False)
     ngo_notified = Column(Boolean, default=False)
     volunteer_notified = Column(Boolean, default=False)
+    volunteer_accepted = Column(Boolean, default=False)
 
     ngo_accepted = Column(Boolean, default=False)
     pickup_confirmed_at = Column(DateTime)

@@ -15,7 +15,7 @@ export default function RegisterPage() {
   const [otp, setOtp] = useState('')
   const [otpSent, setOtpSent] = useState(false)
   const [loading, setLoading] = useState(false)
-  const { register, verifyOtp } = useAuth()
+  const { register, verifyOtp, login } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e) => {
@@ -28,8 +28,9 @@ export default function RegisterPage() {
         toast.success('Verification code sent to your email.')
       } else {
         await verifyOtp(form.email, otp)
-        toast.success('Email verified. You can now log in.')
-        navigate('/login')
+        const user = await login(form.email, form.password)
+        toast.success(`Welcome to FoodBridge AI, ${user.full_name}!`)
+        navigate('/dashboard')
       }
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Registration failed')

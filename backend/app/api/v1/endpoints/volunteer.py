@@ -5,7 +5,8 @@ from datetime import datetime
 
 from app.db.database import get_db
 from app.core.security import get_current_user
-from app.models.models import Volunteer, Match, FoodDonation, DonationStatus, User
+from app.models.models import Volunteer, Match, FoodDonation, DonationStatus, User, NGO
+from app.agents.route_optimization_agent import haversine_distance
 
 router = APIRouter(prefix="/volunteer", tags=["Volunteer"])
 
@@ -50,10 +51,80 @@ async def get_assignments(
     if not volunteer:
         raise HTTPException(404, "Volunteer profile not found")
 
-    matches = await db.execute(
+    matches_result = await db.execute(
         select(Match).where(Match.volunteer_id == volunteer.id).order_by(Match.created_at.desc())
     )
-    return matches.scalars().all()
+    matches = matches_result.scalars().all()
+
+    enriched = []
+    for match in matches:
+        donation_result = await db.execute(select(FoodDonation).where(FoodDonation.id == match.donation_id))
+        donation = donation_result.scalar_one_or_none()
+        ngo_result = await db.execute(select(NGO).where(NGO.id == match.ngo_id))
+        ngo = ngo_result.scalar_one_or_none()
+
+        donor_distance = None
+        ngo_distance = None
+        if volunteer.latitude is not None and volunteer.longitude is not None and donation:
+            if donation.pickup_latitude is not None and donation.pickup_longitude is not None:
+                donor_distance = haversine_distance(
+                    volunteer.latitude,
+                    volunteer.longitude,
+                    donation.pickup_latitude,
+                    donation.pickup_longitude,
+                )
+        if volunteer.latitude is not None and volunteer.longitude is not None and ngo:
+            if ngo.latitude is not None and ngo.longitude is not None:
+                ngo_distance = haversine_distance(
+                    volunteer.latitude,
+                    volunteer.longitude,
+                    ngo.latitude,
+                    ngo.longitude,
+                )
+
+        enriched.append({
+            "id": match.id,
+            "donation_id": match.donation_id,
+            "ngo_id": match.ngo_id,
+            "volunteer_id": match.volunteer_id,
+            "matching_score": match.matching_score,
+            "distance_km": match.distance_km,
+            "estimated_delivery_time": match.estimated_delivery_time,
+            "ai_explanation": match.ai_explanation,
+            "status": match.status,
+            "ngo_accepted": match.ngo_accepted,
+            "volunteer_accepted": match.volunteer_accepted,
+            "pickup_confirmed_at": match.pickup_confirmed_at,
+            "delivered_at": match.delivered_at,
+            "donor_distance_km": round(donor_distance, 2) if donor_distance is not None else None,
+            "ngo_distance_km": round(ngo_distance, 2) if ngo_distance is not None else None,
+        })
+
+    return enriched
+
+
+@router.post("/assignments/{match_id}/accept", summary="Accept a volunteer assignment")
+async def accept_assignment(
+    match_id: int,
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    v_result = await db.execute(select(Volunteer).where(Volunteer.user_id == current_user.id))
+    volunteer = v_result.scalar_one_or_none()
+    if not volunteer:
+        raise HTTPException(404, "Volunteer profile not found")
+
+    result = await db.execute(select(Match).where(Match.id == match_id))
+    match = result.scalar_one_or_none()
+    if not match or match.volunteer_id != volunteer.id:
+        raise HTTPException(404, "Assignment not found")
+
+    match.volunteer_accepted = True
+    if match.ngo_accepted and match.status == DonationStatus.MATCHED:
+        match.status = DonationStatus.ASSIGNED
+    volunteer.is_available = False
+    await db.flush()
+    return {"message": "Assignment accepted", "match_id": match_id}
 
 
 @router.post("/assignments/{match_id}/pickup-confirmed", summary="Confirm food pickup")

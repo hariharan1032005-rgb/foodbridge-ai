@@ -132,3 +132,127 @@
   .lg\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
+
+.nav-link {
+  color: #9ca3af;
+  text-decoration: none;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link:focus {
+  color: #f9fafb;
+}
+
+.cta-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.hero-cta {
+  min-width: 180px;
+}
+
+.search-suggestion-list {
+  position: absolute;
+  z-index: 50;
+  width: 100%;
+  margin-top: 0.5rem;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: rgba(15,23,42,0.98);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+}
+
+.search-suggestion-item {
+  width: 100%;
+  text-align: left;
+  padding: 1rem 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  background: transparent;
+  color: #f9fafb;
+  transition: background 0.15s ease;
+}
+
+.search-suggestion-item:hover {
+  background: rgba(255,255,255,0.05);
+}
+
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  transition: width 0.3s ease;
+}
+
+.main-content {
+  margin-left: 260px;
+  min-height: 100vh;
+  background: var(--bg-dark);
+  padding: 2rem;
+  transition: margin-left 0.3s ease;
+}
+
+.sidebar-collapsed {
+  margin-left: 72px !important;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    position: relative;
+    width: 100%;
+    min-height: auto;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 1.5rem;
+  }
+}
+
+.sidebar {
+  width: 260px;
+  min-height: 100vh;
+  background: var(--bg-card);
+  border-right: 1px solid var(--border);
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 40;
+  transition: width 0.3s ease;
+}
+
+.main-content {
+  margin-left: 260px;
+  min-height: 100vh;
+  background: var(--bg-dark);
+  padding: 2rem;
+  transition: margin-left 0.3s ease;
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    position: relative;
+    width: 100%;
+    min-height: auto;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 1.5rem;
+  }
+}
+
+.sidebar-collapsed {
+  margin-left: 72px !important;
+}

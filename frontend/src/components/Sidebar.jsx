@@ -1,30 +1,27 @@
-import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import {
   LayoutDashboard, Utensils, Building2, Truck, BarChart3,
-  Bell, Settings, LogOut, Leaf, Menu, X, ChevronRight
+  Bell, Upload, LogOut, Leaf, Menu, X, CheckCircle2
 } from 'lucide-react'
 
 const navByRole = {
   admin: [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/donations', icon: Utensils, label: 'Donations' },
-    { to: '/ngos', icon: Building2, label: 'NGOs' },
-    { to: '/volunteers', icon: Truck, label: 'Volunteers' },
-    { to: '/analytics', icon: BarChart3, label: 'Analytics' },
+    { to: '/post-donation', icon: Upload, label: 'Post Donation' },
     { to: '/reports', icon: BarChart3, label: 'Reports' },
   ],
   donor: [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/donor-profile', icon: CheckCircle2, label: 'Donor Profile' },
     { to: '/donations', icon: Utensils, label: 'My Donations' },
-    { to: '/post-donation', icon: Utensils, label: 'Post Donation' },
+    { to: '/post-donation', icon: Upload, label: 'Post Donation' },
   ],
   ngo: [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/ngo-portal', icon: Building2, label: 'NGO Portal' },
-    { to: '/ngo-matches', icon: ChevronRight, label: 'Matches' },
-    { to: '/demand-prediction', icon: BarChart3, label: 'Predictions' },
+    { to: '/reports', icon: BarChart3, label: 'Reports' },
   ],
   volunteer: [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -32,10 +29,9 @@ const navByRole = {
   ],
 }
 
-export default function Sidebar() {
+export default function Sidebar({ collapsed, setCollapsed }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const [collapsed, setCollapsed] = useState(false)
 
   const links = navByRole[user?.role] || navByRole.donor
 

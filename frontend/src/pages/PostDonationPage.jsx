@@ -1,7 +1,7 @@
-import { useState } from 'react'
-import { donationApi } from '../api'
+import { useEffect, useState } from 'react'
+import { donationApi, ngoApi } from '../api'
 import toast from 'react-hot-toast'
-import { Utensils, Upload, Loader2, Leaf, AlertCircle, CheckCircle2, Clock } from 'lucide-react'
+import { Utensils, Upload, Loader2, Leaf, AlertCircle, CheckCircle2, Clock, MapPin, Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 const CATEGORIES = [
@@ -27,11 +27,95 @@ export default function PostDonationPage() {
     food_name: '', food_category: 'cooked_meal', is_veg: true,
     quantity_kg: '', quantity_servings: '',
     pickup_address: '', pickup_latitude: null, pickup_longitude: null,
-    expires_at: '', description: '',
+    expires_at: '', description: '', selected_ngo_id: null,
   })
+  const [pickupQuery, setPickupQuery] = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false)
+  const [profileChecked, setProfileChecked] = useState(false)
+  const [hasDonorProfile, setHasDonorProfile] = useState(false)
+  const [ngoOptions, setNgoOptions] = useState([])
+  const [ngosLoading, setNgosLoading] = useState(false)
+
+  const fetchPickupSuggestions = async (query) => {
+    if (!query || query.trim().length < 3) {
+      setSuggestions([])
+      return
+    }
+
+    setSuggestionsLoading(true)
+    try {
+      const response = await donationApi.suggestPickupAddress(query)
+      setSuggestions(Array.isArray(response.data) ? response.data : [])
+    } catch (error) {
+      setSuggestions([])
+    } finally {
+      setSuggestionsLoading(false)
+    }
+  }
+
+  const selectSuggestion = (suggestion) => {
+    setForm({
+      ...form,
+      pickup_address: suggestion.address || form.pickup_address,
+      pickup_latitude: suggestion.latitude || null,
+      pickup_longitude: suggestion.longitude || null,
+    })
+    setSuggestions([])
+  }
+
+  const handlePickupAddressChange = (value) => {
+    setForm({ ...form, pickup_address: value, pickup_latitude: null, pickup_longitude: null })
+    setPickupQuery(value)
+  }
+
+  useEffect(() => {
+    const debounce = setTimeout(() => {
+      if (pickupQuery.trim().length >= 3) {
+        fetchPickupSuggestions(pickupQuery)
+      } else {
+        setSuggestions([])
+      }
+    }, 350)
+
+    return () => clearTimeout(debounce)
+  }, [pickupQuery])
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        await donationApi.getDonorProfile()
+        setHasDonorProfile(true)
+      } catch (err) {
+        setHasDonorProfile(false)
+      } finally {
+        setProfileChecked(true)
+      }
+    }
+
+    const loadNgos = async () => {
+      setNgosLoading(true)
+      try {
+        const res = await ngoApi.listNgos()
+        setNgoOptions(res.data || [])
+      } catch {
+        setNgoOptions([])
+      } finally {
+        setNgosLoading(false)
+      }
+    }
+
+    loadProfile()
+    loadNgos()
+  }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (!hasDonorProfile) {
+      toast.error('Please create a donor profile first')
+      navigate('/donor-profile')
+      return
+    }
     setLoading(true)
     try {
       const payload = {
@@ -57,6 +141,25 @@ export default function PostDonationPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (profileChecked && !hasDonorProfile) {
+    return (
+      <div className="p-6 max-w-2xl mx-auto animate-fade-in">
+        <div className="glass-dark p-6 text-center">
+          <h1 className="text-2xl font-bold gradient-text">Donor Profile Required</h1>
+          <p className="mt-3" style={{ color: '#9ca3af' }}>
+            You need to create your donor profile before posting a donation. This helps us match your food with nearby NGOs and volunteers.
+          </p>
+          <button
+            onClick={() => navigate('/donor-profile')}
+            className="btn-primary mt-6"
+          >
+            Create Donor Profile
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (step === 3 && createdDonation) {
@@ -132,11 +235,34 @@ export default function PostDonationPage() {
             </div>
           )}
 
+          {createdDonation.match_details && (
+            <div className="glass p-5" style={{ border: '1px solid rgba(99,102,241,0.2)' }}>
+              <h3 className="font-semibold mb-2">Match & Tracking</h3>
+              <div className="text-sm" style={{ color: '#9ca3af' }}>
+                <div>NGO: {createdDonation.match_details.ngo_name || 'Pending'}</div>
+                <div>Status: {createdDonation.match_details.status?.replace('_', ' ') || 'Pending'}</div>
+                <div>NGO accepted: {createdDonation.match_details.ngo_accepted ? 'Yes' : 'No'}</div>
+                <div>Volunteer assigned: {createdDonation.match_details.volunteer_id ? 'Yes' : 'No'}</div>
+                {createdDonation.match_details.distance_km && (
+                  <div>Route distance: {createdDonation.match_details.distance_km.toFixed(1)} km</div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3">
             <button onClick={() => navigate('/donations')} className="btn-secondary flex-1">
               View All Donations
             </button>
-            <button onClick={() => { setStep(1); setCreatedDonation(null); setForm({ food_name:'',food_category:'cooked_meal',is_veg:true,quantity_kg:'',quantity_servings:'',pickup_address:'',expires_at:'',description:'' }) }}
+            <button onClick={() => {
+              setStep(1)
+              setCreatedDonation(null)
+              setForm({
+                food_name: '', food_category: 'cooked_meal', is_veg: true,
+                quantity_kg: '', quantity_servings: '', pickup_address: '', pickup_latitude: null,
+                pickup_longitude: null, expires_at: '', description: '', selected_ngo_id: null,
+              })
+            }}
               className="btn-primary flex-1">
               Post Another
             </button>
@@ -204,10 +330,51 @@ export default function PostDonationPage() {
         </div>
 
         {/* Pickup Address */}
-        <div>
+        <div className="relative">
           <label className="block text-sm font-medium mb-2" style={{ color: '#9ca3af' }}>Pickup Address *</label>
-          <textarea className="input-field" rows={2} placeholder="Full pickup address..." required
-            value={form.pickup_address} onChange={e => setForm({...form, pickup_address: e.target.value})} />
+          <div className="relative">
+            <textarea className="input-field pr-10" rows={2} placeholder="Start typing pickup address..." required
+              value={form.pickup_address} onChange={e => handlePickupAddressChange(e.target.value)} />
+            <div className="absolute top-3 right-3 text-gray-400">
+              {suggestionsLoading ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />}
+            </div>
+          </div>
+          {suggestions.length > 0 && (
+            <div className="absolute z-50 mt-2 w-full rounded-2xl glass-dark overflow-y-auto"
+              style={{ maxHeight: '220px', border: '1px solid rgba(255,255,255,0.12)' }}>
+              {suggestions.map((suggestion, index) => (
+                <button key={`${suggestion.address}-${index}`} type="button"
+                  className="w-full text-left px-4 py-3 border-b last:border-b-0 transition-colors"
+                  style={{ borderColor: 'rgba(255,255,255,0.08)' }}
+                  onClick={() => selectSuggestion(suggestion)}>
+                  <div className="flex items-center gap-2">
+                    <MapPin size={16} />
+                    <span className="font-medium">{suggestion.address}</span>
+                  </div>
+                  {(suggestion.city || suggestion.state || suggestion.country) && (
+                    <p className="text-xs" style={{ color: '#9ca3af', marginTop: 4 }}>
+                      {[suggestion.city, suggestion.state, suggestion.country].filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* NGO Selection */}
+        <div>
+          <label className="block text-sm font-medium mb-2" style={{ color: '#9ca3af' }}>Choose an NGO (optional)</label>
+          <select className="input-field" value={form.selected_ngo_id || ''}
+            onChange={e => setForm({...form, selected_ngo_id: e.target.value ? parseInt(e.target.value, 10) : null})}>
+            <option value="">Let AI suggest the best NGO</option>
+            {ngoOptions.map(ngo => (
+              <option key={ngo.id} value={ngo.id}>
+                {ngo.organization_name} • {ngo.city}, {ngo.state}
+              </option>
+            ))}
+          </select>
+          {ngosLoading && <p className="text-xs mt-2" style={{ color: '#9ca3af' }}>Loading NGOs...</p>}
         </div>
 
         {/* Expiry */}

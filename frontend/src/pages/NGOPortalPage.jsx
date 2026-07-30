@@ -1,27 +1,33 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { ngoApi } from '../api'
 import toast from 'react-hot-toast'
-import { Building2, TrendingUp, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { Building2, TrendingUp, CheckCircle, Loader2 } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts'
 
 export default function NGOPortalPage() {
-  const [profile, setProfile] = useState(null)
-  const [matches, setMatches] = useState([])
   const [prediction, setPrediction] = useState(null)
-  const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState(null)
 
-  useEffect(() => {
-    Promise.all([
-      ngoApi.getNgoProfile().catch(() => null),
-      ngoApi.getMatches().catch(() => ({ data: [] })),
-    ]).then(([p, m]) => {
-      if (p) setProfile(p.data)
-      setMatches(m.data || [])
-    }).finally(() => setLoading(false))
-  }, [])
+  const { data: profileResponse, isLoading: profileLoading } = useQuery({
+    queryKey: ['ngo', 'profile'],
+    queryFn: () => ngoApi.getNgoProfile(),
+    refetchInterval: 20000,
+    staleTime: 10000,
+  })
+
+  const { data: matchesResponse, isLoading: matchesLoading, refetch: refetchMatches } = useQuery({
+    queryKey: ['ngo', 'matches'],
+    queryFn: () => ngoApi.getMatches(),
+    refetchInterval: 20000,
+    staleTime: 10000,
+  })
+
+  const loading = profileLoading || matchesLoading
+  const profile = profileResponse?.data
+  const matches = matchesResponse?.data || []
 
   const fetchPrediction = async () => {
     try {
@@ -36,8 +42,8 @@ export default function NGOPortalPage() {
     setAccepting(matchId)
     try {
       await ngoApi.acceptMatch(matchId)
-      setMatches(prev => prev.map(m => m.id === matchId ? { ...m, ngo_accepted: true, status: 'assigned' } : m))
-      toast.success('Donation accepted!')
+      await refetchMatches()
+      toast.success('Donation accepted! Donor has been notified.')
     } catch {
       toast.error('Failed to accept')
     } finally {

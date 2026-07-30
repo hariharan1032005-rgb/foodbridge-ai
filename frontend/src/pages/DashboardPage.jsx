@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { dashboardApi } from '../api'
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
@@ -8,7 +9,6 @@ import {
   Utensils, Leaf, Users, Truck, Package, CheckCircle2,
   TrendingUp, Zap, Globe, TreePine
 } from 'lucide-react'
-import toast from 'react-hot-toast'
 
 const COLORS = ['#10b981', '#6366f1', '#f59e0b', '#3b82f6', '#ec4899']
 
@@ -30,19 +30,28 @@ function StatCard({ icon: Icon, label, value, color, suffix = '' }) {
 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState(null)
-  const [analytics, setAnalytics] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const { data: statsResponse, isLoading: statsLoading } = useQuery({
+    queryKey: ['dashboard', 'stats'],
+    queryFn: () => dashboardApi.getStats(),
+    refetchInterval: 15000,
+    staleTime: 10000,
+  })
 
-  useEffect(() => {
-    Promise.all([dashboardApi.getStats(), dashboardApi.getAnalytics()])
-      .then(([s, a]) => {
-        setStats(s.data)
-        setAnalytics(a.data)
-      })
-      .catch(() => toast.error('Failed to load dashboard'))
-      .finally(() => setLoading(false))
-  }, [])
+  const { data: analyticsResponse, isLoading: analyticsLoading } = useQuery({
+    queryKey: ['dashboard', 'analytics'],
+    queryFn: () => dashboardApi.getAnalytics(),
+    refetchInterval: 15000,
+    staleTime: 10000,
+  })
+
+  const loading = statsLoading || analyticsLoading
+  const stats = statsResponse?.data
+  const analytics = analyticsResponse?.data
+
+  const lastUpdated = useMemo(() => {
+    if (!statsResponse?.data && !analyticsResponse?.data) return null
+    return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }, [statsResponse, analyticsResponse])
 
   if (loading) return (
     <div className="flex items-center justify-center h-96">

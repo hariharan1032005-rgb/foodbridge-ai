@@ -95,13 +95,10 @@ export default function LandingPage() {
         </div>
 
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <Link to="/login" style={{
-            color: '#9ca3af', textDecoration: 'none', fontSize: 14,
-            fontWeight: 500, transition: 'color 0.2s',
-          }}
-            onMouseEnter={e => e.target.style.color = '#f9fafb'}
-            onMouseLeave={e => e.target.style.color = '#9ca3af'}
-          >Sign In</Link>
+          <Link to="/login" className="text-sm font-medium transition-opacity hover:opacity-90"
+            style={{ color: '#9ca3af', textDecoration: 'none' }}>
+            Sign In
+          </Link>
           <Link to="/register">
             <button className="btn-primary" style={{ padding: '0.5rem 1.25rem' }}>
               Get Started
@@ -163,19 +160,14 @@ export default function LandingPage() {
             predicts demand, optimizes routes, and maximizes social impact — in real time.
           </p>
 
-          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="cta-actions">
             <Link to="/register">
-              <button className="btn-primary" style={{
-                padding: '0.875rem 2rem', fontSize: '1rem',
-                display: 'flex', alignItems: 'center', gap: 8,
-              }}>
+              <button className="btn-primary hero-cta" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 Start Donating <ArrowRight size={18} />
               </button>
             </Link>
             <Link to="/login">
-              <button className="btn-secondary" style={{ padding: '0.875rem 2rem', fontSize: '1rem' }}>
-                NGO / Volunteer Login
-              </button>
+              <button className="btn-secondary hero-cta">NGO / Volunteer Login</button>
             </Link>
           </div>
         </div>

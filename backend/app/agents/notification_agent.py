@@ -63,6 +63,14 @@ class NotificationAgent:
             "pickup", match_id
         )
 
+    async def notify_donor_accepted(self, db: AsyncSession, donor_user_id: int, ngo_name: str, match_id: int):
+        return await self.notify(
+            db, donor_user_id,
+            "✅ Donation Accepted by NGO",
+            f"Your donation has been accepted by {ngo_name}. Pickup will begin shortly.",
+            "match", match_id
+        )
+
     async def notify_delivery_complete(self, db: AsyncSession, donor_user_id: int, ngo_name: str, match_id: int):
         return await self.notify(
             db, donor_user_id,

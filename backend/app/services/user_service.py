@@ -51,10 +51,6 @@ async def create_user(db: AsyncSession, user_data: UserCreate) -> User:
     db.add(user)
     await db.flush()
     await db.refresh(user)
-
-    email_sent = send_registration_email(user.email, user.full_name, user.role.value)
-    if not email_sent:
-        logger.warning("Welcome email could not be sent for %s", user.email)
     return user
 
 

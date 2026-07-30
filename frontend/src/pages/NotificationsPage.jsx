@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { dashboardApi } from '../api'
-import { Bell, CheckCheck, Package, Truck, Building2, AlertCircle, Loader2 } from 'lucide-react'
+import { Bell, CheckCheck, Package, Truck, Building2, Loader2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 const TYPE_META = {
@@ -22,28 +22,19 @@ function timeAgo(dateStr) {
 }
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => dashboardApi.getNotifications(),
+    refetchInterval: 15000,
+    staleTime: 12000,
+  })
 
-  const load = async () => {
-    try {
-      const res = await dashboardApi.getNotifications()
-      setNotifications(res.data || [])
-    } catch {
-      toast.error('Failed to load notifications')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { load() }, [])
+  const notifications = data?.data || []
 
   const markRead = async (id) => {
     try {
       await dashboardApi.markRead(id)
-      setNotifications(prev =>
-        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
-      )
+      refetch()
     } catch {
       toast.error('Failed to mark as read')
     }
@@ -78,7 +69,7 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex items-center justify-center h-64">
           <Loader2 size={32} className="spinner" style={{ color: '#10b981' }} />
         </div>

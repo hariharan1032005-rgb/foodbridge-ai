@@ -4,7 +4,7 @@ from sqlalchemy import select
 
 from app.db.database import get_db
 from app.core.security import get_current_user
-from app.models.models import NGO, FoodRequest, Match, DonationStatus, FoodDonation
+from app.models.models import NGO, FoodRequest, Match, DonationStatus, FoodDonation, Donor
 from app.schemas.ngo_schema import NGOProfileCreate, FoodRequestCreate
 from app.agents.demand_prediction_agent import DemandPredictionAgent
 from app.agents.notification_agent import NotificationAgent
@@ -40,8 +40,10 @@ async def get_ngo_profile(current_user=Depends(get_current_user), db: AsyncSessi
 
 
 @router.get("/all", summary="List all verified NGOs")
-async def list_ngos(skip: int = 0, limit: int = 50, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(NGO).offset(skip).limit(limit))
+async def list_ngos(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(
+        select(NGO).where(NGO.is_verified == True).offset(skip).limit(limit)
+    )
     return result.scalars().all()
 
 
@@ -84,14 +86,39 @@ async def accept_match(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    result = await db.execute(select(Match).where(Match.id == match_id))
+    ngo_result = await db.execute(select(NGO).where(NGO.user_id == current_user.id))
+    ngo = ngo_result.scalar_one_or_none()
+    if not ngo:
+        raise HTTPException(404, "NGO not found")
+
+    result = await db.execute(select(Match).where(Match.id == match_id, Match.ngo_id == ngo.id))
     match = result.scalar_one_or_none()
     if not match:
         raise HTTPException(404, "Match not found")
 
     match.ngo_accepted = True
-    match.status = DonationStatus.ASSIGNED
+    if match.status == DonationStatus.MATCHED:
+        match.status = DonationStatus.ASSIGNED
+
+    donation_result = await db.execute(select(FoodDonation).where(FoodDonation.id == match.donation_id))
+    donation = donation_result.scalar_one_or_none()
+    donor_user_id = None
+    if donation:
+        donor_result = await db.execute(select(Donor).where(Donor.id == donation.donor_id))
+        donor = donor_result.scalar_one_or_none()
+        if donor:
+            donor_user_id = donor.user_id
+
     await db.flush()
+
+    if donor_user_id and current_user:
+        ngo_result = await db.execute(select(NGO).where(NGO.id == match.ngo_id))
+        ngo = ngo_result.scalar_one_or_none()
+        if ngo:
+            await notification_agent.notify_donor_accepted(
+                db, donor_user_id, ngo.organization_name, match.id
+            )
+
     return {"message": "Donation accepted successfully", "match_id": match_id}
 
 

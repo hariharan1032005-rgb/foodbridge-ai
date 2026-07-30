@@ -1,4 +1,5 @@
 import './App.css'
+import { useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import Sidebar from './components/Sidebar'
@@ -13,6 +14,7 @@ import NGOPortalPage from './pages/NGOPortalPage'
 import PickupsPage from './pages/PickupsPage'
 import ReportsPage from './pages/ReportsPage'
 import NotificationsPage from './pages/NotificationsPage'
+import DonorProfilePage from './pages/DonorProfilePage'
 import LandingPage from './pages/LandingPage'
 
 // Protected Route wrapper
@@ -40,10 +42,12 @@ function ProtectedRoute({ children, roles }) {
 
 // App shell with sidebar
 function AppShell({ children }) {
+  const [collapsed, setCollapsed] = useState(false)
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar />
-      <main className="main-content flex-1">
+      <Sidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+      <main className={`main-content flex-1 ${collapsed ? 'sidebar-collapsed' : ''}`}>
         {children}
       </main>
     </div>
@@ -72,7 +76,7 @@ export default function App() {
       } />
 
       <Route path="/reports" element={
-        <ProtectedRoute>
+        <ProtectedRoute roles={['admin', 'ngo']}>
           <AppShell><ReportsPage /></AppShell>
         </ProtectedRoute>
       } />
@@ -87,6 +91,12 @@ export default function App() {
       <Route path="/post-donation" element={
         <ProtectedRoute roles={['donor', 'admin']}>
           <AppShell><PostDonationPage /></AppShell>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/donor-profile" element={
+        <ProtectedRoute roles={['donor', 'admin']}>
+          <AppShell><DonorProfilePage /></AppShell>
         </ProtectedRoute>
       } />
 

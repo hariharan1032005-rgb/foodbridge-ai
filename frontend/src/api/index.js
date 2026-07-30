@@ -47,6 +47,7 @@ export const donationApi = {
   uploadImage: (id, formData) => api.post(`/donations/${id}/upload-image`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  suggestPickupAddress: (query) => api.get('/locations/suggest', { params: { query } }),
 }
 
 // ── NGO ───────────────────────────────────────────────────────────────────────
@@ -65,6 +66,7 @@ export const volunteerApi = {
   getProfile: () => api.get('/volunteer/profile'),
   createProfile: (params) => api.post('/volunteer/profile', null, { params }),
   getAssignments: () => api.get('/volunteer/assignments'),
+  acceptAssignment: (matchId) => api.post(`/volunteer/assignments/${matchId}/accept`),
   confirmPickup: (matchId) => api.post(`/volunteer/assignments/${matchId}/pickup-confirmed`),
   confirmDelivery: (matchId) => api.post(`/volunteer/assignments/${matchId}/delivered`),
   toggleAvailability: (available) => api.patch('/volunteer/availability', null, {

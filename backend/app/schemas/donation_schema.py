@@ -39,6 +39,7 @@ class FoodDonationCreate(BaseModel):
     prepared_at: Optional[datetime] = None
     expires_at: datetime
     description: Optional[str] = None
+    selected_ngo_id: Optional[int] = None
 
 
 class FoodDonationResponse(FoodDonationCreate):
@@ -52,6 +53,7 @@ class FoodDonationResponse(FoodDonationCreate):
     spoilage_risk: Optional[str] = None
     pickup_priority: Optional[str] = None
     ai_analysis: Optional[Dict[str, Any]] = None
+    match_details: Optional[Dict[str, Any]] = None
     created_at: datetime
 
     class Config:

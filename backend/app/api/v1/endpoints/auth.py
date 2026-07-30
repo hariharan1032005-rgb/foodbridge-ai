@@ -13,7 +13,7 @@ from app.services.user_service import (
     generate_otp,
     verify_otp_code,
 )
-from app.core.security import create_access_token, get_current_user
+from app.core.security import create_access_token, get_current_user, get_password_hash
 from app.services.email_service import send_registration_email, send_login_notification_email
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -24,10 +24,23 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """Register a new user (donor, NGO, volunteer, or admin)."""
     existing = await get_user_by_email(db, user_data.email)
     if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
+        if existing.is_verified:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        # If user exists but is not verified yet, resend OTP and allow retry
+        existing.hashed_password = get_password_hash(user_data.password)
+        existing.full_name = user_data.full_name
+        existing.phone = user_data.phone
+        existing.role = user_data.role
+        otp = generate_otp()
+        existing.otp_code = otp
+        existing.otp_sent_at = datetime.utcnow()
+        await db.commit()
+        send_registration_email(existing.email, existing.full_name, existing.role.value, otp)
+        return existing
+
     user = await create_user(db, user_data)
     otp = generate_otp()
     user.otp_code = otp

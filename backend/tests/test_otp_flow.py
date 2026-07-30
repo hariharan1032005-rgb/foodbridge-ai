@@ -15,4 +15,4 @@ def test_verify_otp_code_checks_expiry_and_match():
 
     assert verify_otp_code("123456", "123456", now, now + timedelta(minutes=5)) is True
     assert verify_otp_code("123456", "654321", now, now + timedelta(minutes=5)) is False
-    assert verify_otp_code("123456", "123456", now + timedelta(minutes=20), now + timedelta(minutes=5)) is False
+    assert verify_otp_code("123456", "123456", now, now + timedelta(minutes=20)) is False
